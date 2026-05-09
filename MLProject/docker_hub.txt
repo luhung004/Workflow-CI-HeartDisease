@@ -1,0 +1,2 @@
+Docker Hub URL: https://hub.docker.com/r/luhung004/heart-disease-model
+(Note: Build image pakai 'mlflow models build-docker')
