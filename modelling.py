@@ -17,6 +17,11 @@ import os
 data_path = os.path.join(os.path.dirname(__file__), 'dataset_processed.joblib')
 X_train, X_test, y_train, y_test = joblib.load(data_path)
 
+# Pastikan target biner (0 = Sehat, 1 = Sakit)
+# num: 0=normal, 1-4=heart disease
+y_train = (y_train > 0).astype(int)
+y_test = (y_test > 0).astype(int)
+
 print(f"Ukuran X_train : {X_train.shape}")
 print(f"Ukuran X_test  : {X_test.shape}")
 
