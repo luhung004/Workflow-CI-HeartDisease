@@ -11,8 +11,7 @@ import seaborn as sns
 import os
 
 # Set tracking URI & nama eksperimen
-# mlflow.set_tracking_uri("http://127.0.0.1:5000") # Dihapus agar mengikuti env
-mlflow.set_experiment("Heart Disease CI")
+# mlflow.set_experiment("Heart Disease CI")
 
 # Load data hasil preprocessing
 data_path = os.path.join(os.path.dirname(__file__), 'dataset_processed.joblib')
@@ -29,7 +28,7 @@ print(f"\nDistribusi y_test:\n{y_test.value_counts().to_string()}")
 # Mencatat parameter default, metrik, dan model secara otomatis
 # mlflow.sklearn.autolog()
 
-with mlflow.start_run(run_name="Basic_RandomForest_HeartDisease"):
+with mlflow.start_run(nested=True):
     #  Training model
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
@@ -100,4 +99,4 @@ with mlflow.start_run(run_name="Basic_RandomForest_HeartDisease"):
     print(f"  F1-Score  : {f1:.4f}")
     print("="*45)
 
-print("\nCek MLflow UI di http://127.0.0.1:5000")
+# print("\nCek MLflow UI di http://127.0.0.1:5000")
