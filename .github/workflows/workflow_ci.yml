@@ -35,10 +35,13 @@ jobs:
           if [ -d "MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
             echo "✓ Model artifacts found"
             ls -la "MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
+            echo "✓ MLmodel file exists"
+            cat "MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model/MLmodel"
           else
             echo "⚠ Model artifacts directory not found"
             echo "Available runs:"
             find MLProject/mlruns -type f -name "MLmodel" 2>/dev/null || echo "No MLmodel files found"
+            exit 1
           fi
 
       - name: Upload Artefak Model ke GitHub
@@ -62,18 +65,29 @@ jobs:
             echo "⚠ Model directory not found at $ABSOLUTE_MODEL_PATH"
             echo "Listing available directories:"
             find MLProject/mlruns -type d -name "model" 2>/dev/null || echo "No model directories found"
+            exit 1
           else
-            echo "✓ Model found, building Docker image..."
+            echo "✓ Model found at $ABSOLUTE_MODEL_PATH"
+            echo "Model contents:"
+            ls -la "$ABSOLUTE_MODEL_PATH"
             
-            # Build Docker image
+            echo ""
+            echo "✓ Building Docker image..."
+            
+            # Build Docker image using absolute path
             mlflow models build-docker \
               -m "file://$ABSOLUTE_MODEL_PATH" \
-              -n prediksi-penyakit-jantung:latest
+              -n prediksi-penyakit-jantung:latest \
+              --enable-mlserver
 
             echo "✓ Docker image built successfully"
             
+            # List built images
+            docker images | grep prediksi-penyakit-jantung
+            
             # Push to Docker Hub if credentials are available
             if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+              echo "✓ Pushing to Docker Hub..."
               docker tag prediksi-penyakit-jantung:latest ${{ secrets.DOCKER_USERNAME }}/prediksi-penyakit-jantung:latest
               docker push ${{ secrets.DOCKER_USERNAME }}/prediksi-penyakit-jantung:latest
               echo "✓ Docker image pushed successfully"
