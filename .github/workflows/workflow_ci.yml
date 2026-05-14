@@ -24,34 +24,34 @@ jobs:
 
       - name: Set MLflow Tracking URI and Run ID
         run: |
-          echo "RUN_ID=c2cb7911b4e1460ab8d28ca353284215" >> $GITHUB_ENV
-          echo "MLFLOW_TRACKING_URI=file:./mlruns" >> $GITHUB_ENV
+          echo "RUN_ID=e329253411a944c4aafcfa28d1e7588d" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=file:./MLProject/mlruns" >> $GITHUB_ENV
 
       - name: Verify Artifact Exists
         run: |
           echo "Checking MLflow runs directory..."
           echo "Looking for Run ID: ${{ env.RUN_ID }}"
           
-          if [ -d "mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
+          if [ -d "MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
             echo "✓ Model artifacts found"
-            ls -la "mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
+            ls -la "MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
           else
             echo "⚠ Model artifacts directory not found"
             echo "Available runs:"
-            find mlruns -type f -name "MLmodel" 2>/dev/null || echo "No MLmodel files found"
+            find MLProject/mlruns -type f -name "MLmodel" 2>/dev/null || echo "No MLmodel files found"
           fi
 
       - name: Upload Artefak Model ke GitHub
         uses: actions/upload-artifact@v4
         with:
           name: model-artifacts
-          path: mlruns/
+          path: MLProject/mlruns/
 
       - name: Build dan Push Docker Image
         continue-on-error: true
         run: |
           # Model path
-          MODEL_PATH="mlruns/0/${{ env.RUN_ID }}/artifacts/model"
+          MODEL_PATH="MLProject/mlruns/0/${{ env.RUN_ID }}/artifacts/model"
           ABSOLUTE_MODEL_PATH="$(pwd)/$MODEL_PATH"
           
           echo "Using Run ID: ${{ env.RUN_ID }}"
@@ -61,21 +61,21 @@ jobs:
           if [ ! -d "$ABSOLUTE_MODEL_PATH" ]; then
             echo "⚠ Model directory not found at $ABSOLUTE_MODEL_PATH"
             echo "Listing available directories:"
-            find mlruns -type d -name "model" 2>/dev/null || echo "No model directories found"
+            find MLProject/mlruns -type d -name "model" 2>/dev/null || echo "No model directories found"
           else
             echo "✓ Model found, building Docker image..."
             
             # Build Docker image
             mlflow models build-docker \
               -m "file://$ABSOLUTE_MODEL_PATH" \
-              -n prediksi penyakit jantung:latest
+              -n prediksi-penyakit-jantung:latest
 
             echo "✓ Docker image built successfully"
             
             # Push to Docker Hub if credentials are available
             if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
-              docker tag prediksi penyakit jantung:latest ${{ secrets.DOCKER_USERNAME }}/prediksi penyakit jantung:latest
-              docker push ${{ secrets.DOCKER_USERNAME }}/prediksi penyakit jantung:latest
+              docker tag prediksi-penyakit-jantung:latest ${{ secrets.DOCKER_USERNAME }}/prediksi-penyakit-jantung:latest
+              docker push ${{ secrets.DOCKER_USERNAME }}/prediksi-penyakit-jantung:latest
               echo "✓ Docker image pushed successfully"
             else
               echo "⚠ Docker Hub credentials not set, skipping push"
