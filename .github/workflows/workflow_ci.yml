@@ -18,6 +18,16 @@ jobs:
         with:
           python-version: "3.12.7"
 
+      - name: Create py alias for Linux compatibility
+        run: |
+          echo "alias py=python" >> $HOME/.bashrc
+          echo "alias py=python" >> $HOME/.bash_profile
+          sudo ln -s $(which python) /usr/local/bin/py || true
+          echo "Python version:"
+          python --version
+          echo "Checking py alias:"
+          which py || echo "py not in PATH, but alias is set"
+
       - name: Install Dependencies
         run: |
           pip install mlflow==2.19.0 pandas scikit-learn dagshub
