@@ -3,7 +3,7 @@ name: Workflow CI MLflow
 on:
   push:
     branches:
-      - main # Robot akan bekerja setiap kali ada perubahan di branch main
+      - master # Robot akan bekerja setiap kali ada perubahan di branch master
 
 jobs:
   build-and-push:
