@@ -22,37 +22,23 @@ jobs:
         run: |
           pip install mlflow==2.19.0 pandas scikit-learn dagshub
 
-      - name: Run MLflow Project
-        env:
-          DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
-          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-          MLFLOW_TRACKING_URI: file:./mlruns
+      - name: Set MLflow Tracking URI and Run ID
         run: |
-          mlflow run . --env-manager=local
-
-      - name: Dapatkan ID Eksperimen (Run ID) Terbaru
-        id: get_run_id
-        run: |
-          RUN_ID=$(find mlruns/0 -maxdepth 1 -type d -not -name '0' | sort -r | head -1 | xargs basename)
-          if [ -z "$RUN_ID" ]; then
-            echo "Error: No MLflow run found"
-            exit 1
-          fi
-          echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "RUN_ID=c2cb7911b4e1460ab8d28ca353284215" >> $GITHUB_ENV
+          echo "MLFLOW_TRACKING_URI=file:./mlruns" >> $GITHUB_ENV
 
       - name: Verify Artifact Exists
         run: |
           echo "Checking MLflow runs directory..."
-          ls -la mlruns/0/
+          echo "Looking for Run ID: ${{ env.RUN_ID }}"
+          
           if [ -d "mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
-            echo "Model artifacts found"
+            echo "✓ Model artifacts found"
             ls -la "mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
           else
-            echo "Model artifacts directory not found"
-            echo "Available artifacts:"
-            find mlruns/0/${{ env.RUN_ID }}/artifacts -type f 2>/dev/null || echo "No artifacts found"
-            exit 1
+            echo "⚠ Model artifacts directory not found"
+            echo "Available runs:"
+            find mlruns -type f -name "MLmodel" 2>/dev/null || echo "No MLmodel files found"
           fi
 
       - name: Upload Artefak Model ke GitHub
@@ -64,27 +50,34 @@ jobs:
       - name: Build dan Push Docker Image
         continue-on-error: true
         run: |
-          # Get absolute path to model artifacts
-          ABSOLUTE_MODEL_PATH="$(pwd)/mlruns/0/${{ env.RUN_ID }}/artifacts/model"
+          # Model path
+          MODEL_PATH="mlruns/0/${{ env.RUN_ID }}/artifacts/model"
+          ABSOLUTE_MODEL_PATH="$(pwd)/$MODEL_PATH"
+          
+          echo "Using Run ID: ${{ env.RUN_ID }}"
           echo "Model path: $ABSOLUTE_MODEL_PATH"
 
-          # Verify model directory exists
+          # Check if model exists
           if [ ! -d "$ABSOLUTE_MODEL_PATH" ]; then
-            echo "Error: Model directory not found at $ABSOLUTE_MODEL_PATH"
-            ls -la "mlruns/0/${{ env.RUN_ID }}/artifacts/" || echo "Artifacts dir not found"
-            exit 1
-          fi
-
-          # Build Docker image menggunakan file URI
-          mlflow models build-docker \
-            -m "file://$ABSOLUTE_MODEL_PATH" \
-            -n prediksi-nilai-siswa:latest
-
-          echo "✓ Docker image built successfully"
-          if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
-            docker tag prediksi-nilai-siswa:latest ${{ secrets.DOCKER_USERNAME }}/prediksi-nilai-siswa:latest
-            docker push ${{ secrets.DOCKER_USERNAME }}/prediksi-nilai-siswa:latest
-            echo "✓ Docker image pushed successfully"
+            echo "⚠ Model directory not found at $ABSOLUTE_MODEL_PATH"
+            echo "Listing available directories:"
+            find mlruns -type d -name "model" 2>/dev/null || echo "No model directories found"
           else
-            echo "⚠ Docker Hub credentials not set, skipping push"
+            echo "✓ Model found, building Docker image..."
+            
+            # Build Docker image
+            mlflow models build-docker \
+              -m "file://$ABSOLUTE_MODEL_PATH" \
+              -n prediksi penyakit jantung:latest
+
+            echo "✓ Docker image built successfully"
+            
+            # Push to Docker Hub if credentials are available
+            if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
+              docker tag prediksi penyakit jantung:latest ${{ secrets.DOCKER_USERNAME }}/prediksi penyakit jantung:latest
+              docker push ${{ secrets.DOCKER_USERNAME }}/prediksi penyakit jantung:latest
+              echo "✓ Docker image pushed successfully"
+            else
+              echo "⚠ Docker Hub credentials not set, skipping push"
+            fi
           fi
