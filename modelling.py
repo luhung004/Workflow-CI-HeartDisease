@@ -104,4 +104,4 @@ with mlflow.start_run(nested=True):
     print(f"  F1-Score  : {f1:.4f}")
     print("="*45)
 
-# print("\nCek MLflow UI di http://127.0.0.1:5000")
+print("\nCek MLflow UI di http://127.0.0.1:5000")
