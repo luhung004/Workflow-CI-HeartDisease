@@ -26,16 +26,15 @@ jobs:
         env:
           DAGSHUB_USERNAME: ${{ secrets.DAGSHUB_USERNAME }}
           DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-          MLFLOW_TRACKING_URI: file:./mlruns
+          MLFLOW_TRACKING_URI: file:./Workflow-CI/mlruns
         run: |
-          cd MLProject
+          cd Workflow-CI
           mlflow run . --env-manager=local
 
       - name: Dapatkan ID Eksperimen (Run ID) Terbaru
         id: get_run_id
         run: |
-          cd MLProject
-          RUN_ID=$(find mlruns/0 -maxdepth 1 -type d -not -name '0' | sort -r | head -1 | xargs basename)
+          RUN_ID=$(find Workflow-CI/mlruns/0 -maxdepth 1 -type d -not -name '0' | sort -r | head -1 | xargs basename)
           if [ -z "$RUN_ID" ]; then
             echo "Error: No MLflow run found"
             exit 1
@@ -45,16 +44,15 @@ jobs:
 
       - name: Verify Artifact Exists
         run: |
-          cd MLProject
           echo "Checking MLflow runs directory..."
-          ls -la mlruns/0/
-          if [ -d "mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
+          ls -la Workflow-CI/mlruns/0/
+          if [ -d "Workflow-CI/mlruns/0/${{ env.RUN_ID }}/artifacts/model" ]; then
             echo "Model artifacts found"
-            ls -la "mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
+            ls -la "Workflow-CI/mlruns/0/${{ env.RUN_ID }}/artifacts/model/"
           else
             echo "Model artifacts directory not found"
             echo "Available artifacts:"
-            find mlruns/0/${{ env.RUN_ID }}/artifacts -type f 2>/dev/null || echo "No artifacts found"
+            find Workflow-CI/mlruns/0/${{ env.RUN_ID }}/artifacts -type f 2>/dev/null || echo "No artifacts found"
             exit 1
           fi
 
@@ -62,21 +60,19 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: model-artifacts
-          path: MLProject/mlruns/
+          path: Workflow-CI/mlruns/
 
       - name: Build dan Push Docker Image
         continue-on-error: true
         run: |
-          cd MLProject
-
           # Get absolute path to model artifacts
-          ABSOLUTE_MODEL_PATH="$(pwd)/mlruns/0/${{ env.RUN_ID }}/artifacts/model"
+          ABSOLUTE_MODEL_PATH="$(pwd)/Workflow-CI/mlruns/0/${{ env.RUN_ID }}/artifacts/model"
           echo "Model path: $ABSOLUTE_MODEL_PATH"
 
           # Verify model directory exists
           if [ ! -d "$ABSOLUTE_MODEL_PATH" ]; then
             echo "Error: Model directory not found at $ABSOLUTE_MODEL_PATH"
-            ls -la "mlruns/0/${{ env.RUN_ID }}/artifacts/" || echo "Artifacts dir not found"
+            ls -la "Workflow-CI/mlruns/0/${{ env.RUN_ID }}/artifacts/" || echo "Artifacts dir not found"
             exit 1
           fi
 
@@ -86,6 +82,7 @@ jobs:
             -n prediksi-nilai-siswa:latest
 
           echo "✓ Docker image built successfully"
+          if [ -n "${{ secrets.DOCKER_USERNAME }}" ]; then
             docker tag prediksi-nilai-siswa:latest ${{ secrets.DOCKER_USERNAME }}/prediksi-nilai-siswa:latest
             docker push ${{ secrets.DOCKER_USERNAME }}/prediksi-nilai-siswa:latest
             echo "✓ Docker image pushed successfully"
